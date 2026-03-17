@@ -11,7 +11,7 @@ st.set_page_config(page_title="성공적인 진학을 위한 체계적인 학교
 st.title("🏫 성공적인 진학을 위한 체계적인 학교생활기록부 분석")
 st.markdown("체계적이고 가독성 있게 학교생활기록부를 분석합니다.")
 
-# --- [핵심 추가] AI의 기억 상실을 막아주는 비밀 금고(Session State) 생성 ---
+# 세션 상태 초기화 (기억 상실 방지)
 if 'analysis_result' not in st.session_state:
     st.session_state.analysis_result = None
 if 'word_file' not in st.session_state:
@@ -29,20 +29,22 @@ def load_reference_pdfs(pdf_list):
                     text += extracted + "\n"
     return text
 
+# [수정됨] 지워졌던 PDF 파일 찾는 코드 복구
+pdf_files = glob.glob("*.pdf")
+
 with st.sidebar:
     st.header("🔑 기본 설정")
-   # 비밀 금고에서 안전하게 키 꺼내오기
-try:
-    api_key = st.secrets["GEMINI_API_KEY"]
-    st.success("✅ 안전한 금고에서 API 키를 불러왔습니다.")
-except:
-    api_key = ""
-    st.error("🚨 금고에 API 키가 없습니다!")
-
+    
+    # 비밀 금고에서 API 키 불러오기
+    try:
+        api_key = st.secrets["GEMINI_API_KEY"]
+        st.success("✅ 안전한 금고에서 API 키를 불러왔습니다.")
+    except:
+        api_key = ""
+        st.error("🚨 금고에 API 키가 없습니다!")
     
     st.markdown("---")
     st.subheader("📚 내장된 평가 기준 파일")
-    pdf_files = glob.glob("*.pdf")
     if pdf_files:
         for f in pdf_files:
             st.write(f"- {f}")
@@ -93,14 +95,13 @@ def create_word_file(text):
     file_stream.seek(0)
     return file_stream
 
-# 버튼을 눌렀을 때의 동작
 if submit_btn:
     if not api_key:
-        st.error("코드 내부에 API 키가 없습니다!")
+        st.error("API 키가 올바르게 설정되지 않았습니다.")
     elif not pdf_files:
-        st.error("기준이 될 PDF 파일이 폴더에 없습니다!")
+        st.error("기준이 될 평가 PDF 파일이 없습니다.")
     elif not student_file:
-        st.error("학생의 생기부 파일(PDF)을 업로드해 주세요!")
+        st.error("학생의 생기부 파일(PDF)을 업로드해 주세요.")
     else:
         status_box = st.empty()
         
@@ -159,7 +160,7 @@ if submit_btn:
             
             **■ 데이터 기반 비즈니스 분석 및 문제 해결 역량**
             **▶ [1학년 진로활동, 3학년 자율활동, 3학년 경제수학]**
-            학생은 컴퓨터 프로그래밍 및 데이터 활용에 대한 초기 호기심을 바탕으로 비즈니스 의사결정 역량을 꾸준히 발전시켜 온 모습이 돋보임. 1학년 때 생성형 언어 모델 API 응용 프로그래밍에 참여하여 파이썬 코드를 직접 설계하며 실시간 데이터 가공 방법을 학습함 [1학년 진로활동]. 3학년 행사에서는 라즈베리파이와 센서를 활용한 달걀 낙하 실험에서 실시간 데이터를 수집하고 물리 공식을 적용해 충격량을 계산하는 등 과학적 분석 능력을 향상함 [3학년 자율활동]. 수요 함수와 공급 함수의 그래프를 해석하여 균형 가격과 거래량을 능숙하게 계산하는 등 경영학 전공에 필요한 정량적 분석 능력을 효과적으로 발전시킨 점이 돋보임 [3학년 경제수학].
+            학생은 컴퓨터 정규 교과 및 동아리 활동을 통해 비즈니스 의사결정 역량을 꾸준히 발전시켜 온 모습이 돋보임. 1학년 때 생성형 언어 모델 API 응용 프로그래밍에 참여하여 파이썬 코드를 직접 설계하며 실시간 데이터 가공 방법을 학습함 [1학년 진로활동]. 3학년 행사에서는 라즈베리파이와 센서를 활용한 달걀 낙하 실험에서 실시간 데이터를 수집하고 물리 공식을 적용해 충격량을 계산하는 등 과학적 분석 능력을 향상함 [3학년 자율활동]. 수요 함수와 공급 함수의 그래프를 해석하여 균형 가격과 거래량을 능숙하게 계산하는 등 경영학 전공에 필요한 정량적 분석 능력을 효과적으로 발전시킨 점이 돋보임 [3학년 경제수학].
 
             [담당 교사의 특별 지시사항 및 학생 특이사항]
             {teacher_context if teacher_context else "특별한 지시사항 없음. 일반적인 기준에 따라 철저히 분석할 것."}
@@ -179,7 +180,6 @@ if submit_btn:
             
             response = model.generate_content(prompt)
             
-            # [핵심 추가] 분석 결과를 금고(Session State)에 영구 저장합니다.
             st.session_state.analysis_result = response.text
             st.session_state.word_file = create_word_file(response.text)
             
@@ -188,7 +188,6 @@ if submit_btn:
         except Exception as e:
             status_box.error(f"오류가 발생했습니다: ({e})")
 
-# [핵심 추가] 금고에 분석 결과가 들어있다면, 화면이 새로고침 되어도 항상 화면에 띄워줍니다!
 if st.session_state.analysis_result:
     st.write(st.session_state.analysis_result)
     
