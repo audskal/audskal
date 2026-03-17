@@ -31,9 +31,14 @@ def load_reference_pdfs(pdf_list):
 
 with st.sidebar:
     st.header("🔑 기본 설정")
-    # API 키 내장 완료
-    api_key = "AIzaSyBrQW7MKPiPtGFgX3T4pLRAplbwph3Vls4".strip() 
-    st.success("API 키가 내장되어 있습니다.")
+   # 비밀 금고에서 안전하게 키 꺼내오기
+try:
+    api_key = st.secrets["GEMINI_API_KEY"]
+    st.success("✅ 안전한 금고에서 API 키를 불러왔습니다.")
+except:
+    api_key = ""
+    st.error("🚨 금고에 API 키가 없습니다!")
+
     
     st.markdown("---")
     st.subheader("📚 내장된 평가 기준 파일")
